@@ -1,0 +1,122 @@
+'use client'
+import React from 'react'
+const { io, Socket } = require("socket.io-client");
+
+interface contextType {
+    makeCall: () => void,
+    localStreams:any,
+    remoteStreams:any,
+}
+const PeerConnectionContext = React.createContext<contextType | null>(null)
+
+export function usePeerConnection() {
+    const peer = React.useContext(PeerConnectionContext);
+    return peer;
+}
+var room = '9478dh4hd'
+
+function PeerConnectionProvider({ children }: { children: React.ReactNode }) {
+
+
+    var socket = React.useRef<typeof Socket | undefined>(undefined).current;
+    var peer = React.useRef<any>(undefined).current;
+    const [localStreams, setLocalStream] = React.useState<any>(null)
+    const [remoteStreams, setRemoteStream] = React.useState<any>(null)
+
+    
+
+    // MAKING SOCKET & PEER CONNECTION 
+    React.useEffect(() => {
+        var _socket = io('http://localhost:9000');
+        socket = _socket;
+        _socket.on('offer', handleOffer)
+        _socket.on('answer', handleAnswer)
+        _socket.on('ice-candidates', saveIceCandidates)
+
+        const configuration = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+        const peerConnection = new RTCPeerConnection(configuration);
+        peer = peerConnection
+        peerConnection.addEventListener('icecandidate', sendIceCandidates);
+        peerConnection.addEventListener('negotiationneeded', negotiationneeded);
+        peerConnection.addEventListener('track', getRemoteStream);
+
+        return () => {
+            _socket.off('offer', handleOffer)
+            _socket.off('answer', handleAnswer)
+            _socket.off('ice-candidates', saveIceCandidates)
+            _socket.disconnect();
+            socket = undefined;
+
+            peerConnection.removeEventListener('track', getRemoteStream);
+            peerConnection.removeEventListener('icecandidate', sendIceCandidates);
+            peerConnection.close()
+            peer = undefined
+        }
+    }, [])
+
+    // ADDING THE TRACKS & SENDING OFFER
+    async function makeCall() {
+        const constraints = { 'video': true, 'audio': true };
+        const localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        setLocalStream(localStream)
+console.log(peer);
+
+        localStream.getTracks().forEach(track => {
+            peer.addTrack(track, localStream);
+        });
+
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        socket.emit('offer', offer );
+    }
+
+    // HANDLING OFFER
+    const handleOffer = async (data: any) => {
+        peer.setRemoteDescription(new RTCSessionDescription(data));
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        socket.emit('answer', answer );
+    }
+    const handleAnswer = async (data: any) => {
+        const remoteDesc = new RTCSessionDescription(data);
+        await peer.setRemoteDescription(remoteDesc);
+    }
+
+    // HANDLING ICE CANDIDATES 
+    const sendIceCandidates = (event: any) => {
+        if (event.candidate) {
+            socket.emit('ice-candidate', event.candidate );
+        }
+    }
+    const saveIceCandidates = async (iceCandidate: any) => {
+        try {
+            await peer.addIceCandidate(iceCandidate);
+        } catch (e) {
+            console.error('Error adding received ice candidate', e);
+        }
+    }
+
+    // HANDLING REMOTE STREAM
+    const getRemoteStream = async (event: any) => {
+        
+        const [remoteStream] = event.streams;
+        console.log(remoteStream);
+        setRemoteStream(remoteStream)
+    }
+
+    // HANDLE NEGOTIATION
+    const negotiationneeded = async () => {
+        // console.log('nego needed');
+        // const offer = await peer.createOffer();
+        // await peer.setLocalDescription(offer);
+        // socket.emit( 'offer', offer );
+    }
+
+    return (
+        <PeerConnectionContext.Provider value={{ makeCall, localStreams, remoteStreams }}>
+            {children}
+        </PeerConnectionContext.Provider>
+    )
+}
+
+export default PeerConnectionProvider
