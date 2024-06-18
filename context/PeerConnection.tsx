@@ -1,11 +1,17 @@
 'use client'
 import React from 'react'
-const { io, Socket } = require("socket.io-client");
+import peer from '@/service/peer';
+import soc from '@/service/socket';
 
 interface contextType {
-    makeCall: () => void,
-    localStreams:any,
-    remoteStreams:any,
+    makeCall: (id: string) => void,
+    localStreams: any,
+    remoteStreams: any,
+    peer:any,
+    roomId: string,
+    name: { local: string, remote: string },
+    setRoomId: React.Dispatch<React.SetStateAction<string>>
+    setName: React.Dispatch<React.SetStateAction<{ local: string, remote: string }>>
 }
 const PeerConnectionContext = React.createContext<contextType | null>(null)
 
@@ -13,84 +19,63 @@ export function usePeerConnection() {
     const peer = React.useContext(PeerConnectionContext);
     return peer;
 }
-var room = '9478dh4hd'
 
 function PeerConnectionProvider({ children }: { children: React.ReactNode }) {
 
-
-    var socket = React.useRef<typeof Socket | undefined>(undefined).current;
-    var peer = React.useRef<any>(undefined).current;
     const [localStreams, setLocalStream] = React.useState<any>(null)
     const [remoteStreams, setRemoteStream] = React.useState<any>(null)
+    const [roomId, setRoomId] = React.useState<string>('84yf4')
+    const [name, setName] = React.useState<{ local: string, remote: string }>({ local: 'Vikas', remote: 'Not Joined Yet' })
 
-    
-
-    // MAKING SOCKET & PEER CONNECTION 
+    // ADDING EVENT LISTENERS
     React.useEffect(() => {
-        var _socket = io('http://localhost:9000');
-        socket = _socket;
-        _socket.on('offer', handleOffer)
-        _socket.on('answer', handleAnswer)
-        _socket.on('ice-candidates', saveIceCandidates)
-
-        const configuration = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
-        const peerConnection = new RTCPeerConnection(configuration);
-        peer = peerConnection
-        peerConnection.addEventListener('icecandidate', sendIceCandidates);
-        peerConnection.addEventListener('negotiationneeded', negotiationneeded);
-        peerConnection.addEventListener('track', getRemoteStream);
+        soc.socket.on('offer', handleOffer)
+        soc.socket.on('answer', handleAnswer)
+        soc.socket.on('ice-candidates', saveIceCandidates)
+        peer.peer.addEventListener('icecandidate', sendIceCandidates);
+        peer.peer.addEventListener('track', getRemoteStream);
 
         return () => {
-            _socket.off('offer', handleOffer)
-            _socket.off('answer', handleAnswer)
-            _socket.off('ice-candidates', saveIceCandidates)
-            _socket.disconnect();
-            socket = undefined;
-
-            peerConnection.removeEventListener('track', getRemoteStream);
-            peerConnection.removeEventListener('icecandidate', sendIceCandidates);
-            peerConnection.close()
-            peer = undefined
+            soc.socket.off('offer', handleOffer)
+            soc.socket.off('answer', handleAnswer)
+            soc.socket.off('ice-candidates', saveIceCandidates)
+            peer.peer.removeEventListener('track', getRemoteStream);
+            peer.peer.removeEventListener('icecandidate', sendIceCandidates);
         }
     }, [])
 
-    // ADDING THE TRACKS & SENDING OFFER
-    async function makeCall() {
+    // ADDING THE TRACKS & SENDING THE OFFER
+    async function makeCall(id: string) {
         const constraints = { 'video': true, 'audio': true };
         const localStream = await navigator.mediaDevices.getUserMedia(constraints);
         setLocalStream(localStream)
-console.log(peer);
 
         localStream.getTracks().forEach(track => {
-            peer.addTrack(track, localStream);
+            peer.peer.addTrack(track, localStream);
         });
 
-        const offer = await peer.createOffer();
-        await peer.setLocalDescription(offer);
-        socket.emit('offer', offer );
+        const offer = await peer.getOffer();
+        soc.socket.emit('offer', offer);
     }
 
     // HANDLING OFFER
     const handleOffer = async (data: any) => {
-        peer.setRemoteDescription(new RTCSessionDescription(data));
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
-        socket.emit('answer', answer );
+        var answer = await peer.getAnswer(data)
+        soc.socket.emit('answer', answer);
     }
     const handleAnswer = async (data: any) => {
-        const remoteDesc = new RTCSessionDescription(data);
-        await peer.setRemoteDescription(remoteDesc);
+        await peer.setAnswer(data);
     }
 
     // HANDLING ICE CANDIDATES 
     const sendIceCandidates = (event: any) => {
         if (event.candidate) {
-            socket.emit('ice-candidate', event.candidate );
+            soc.socket.emit('ice-candidates', event.candidate);
         }
     }
     const saveIceCandidates = async (iceCandidate: any) => {
         try {
-            await peer.addIceCandidate(iceCandidate);
+            await peer.peer.addIceCandidate(iceCandidate);
         } catch (e) {
             console.error('Error adding received ice candidate', e);
         }
@@ -98,22 +83,12 @@ console.log(peer);
 
     // HANDLING REMOTE STREAM
     const getRemoteStream = async (event: any) => {
-        
         const [remoteStream] = event.streams;
-        console.log(remoteStream);
         setRemoteStream(remoteStream)
     }
 
-    // HANDLE NEGOTIATION
-    const negotiationneeded = async () => {
-        // console.log('nego needed');
-        // const offer = await peer.createOffer();
-        // await peer.setLocalDescription(offer);
-        // socket.emit( 'offer', offer );
-    }
-
     return (
-        <PeerConnectionContext.Provider value={{ makeCall, localStreams, remoteStreams }}>
+        <PeerConnectionContext.Provider value={{ makeCall, localStreams, remoteStreams, roomId, setRoomId, name, setName, peer }}>
             {children}
         </PeerConnectionContext.Provider>
     )

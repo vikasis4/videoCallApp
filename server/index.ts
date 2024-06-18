@@ -15,11 +15,12 @@ httpServer.listen(PORT, () => console.log(`HTTP Server started at PORT:${PORT}`)
 
 io.on('connection', (socket: typeof Server) => {
     socket.join('room');
-    
+
     socket.on('offer', (data: any) => {
         console.log('offer');
         socket.broadcast.to('room').emit('offer', data)
     })
+
     socket.on('answer', (data: any) => {
         console.log('ans');
         socket.broadcast.to('room').emit('answer', data)
