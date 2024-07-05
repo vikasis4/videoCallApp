@@ -11,7 +11,8 @@ export function useSocket() {
 function SocketProvider({children}) {
 
 
-    var socket = React.useMemo(() => io('http://192.168.70.204:9000'), [])
+    // var socket = React.useMemo(() => io('http://192.168.70.204:9000'), [])
+    var socket = React.useMemo(() => io('https://video-socket-smyy.onrender.com'), [])
 
     return (
         <SocketContext.Provider value={socket}>
