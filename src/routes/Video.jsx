@@ -88,14 +88,14 @@ function Video() {
         runFxn()
     }, [])
 
- 
 
+    console.log(window.screen.width, window.screen.height);
     return (
-        <div className='flex justify-center items-center gap-8 h-screen w-screen'>
-            <ReactPlayer playing muted url={myStream} className='border-2 border-black bg-black rounded-md shadow-md' />
-            <ReactPlayer playing muted className='border-2 border-black bg-black rounded-md shadow-md' url={remoteStreams} />
+        <div className='flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-8 h-full w-full sm:h-screen sm:w-screen pt-4'>
+            <ReactPlayer width={window.screen.width < 400 ? window.screen.width-20 : window.screen.width / 2} playing muted url={myStream} className='border-2 border-black bg-black rounded-md shadow-md' />
+            <ReactPlayer  width={window.screen.width < 400 ? window.screen.width-20 : window.screen.width / 2}  playing className='border-2 border-black bg-black rounded-md shadow-md' url={remoteStreams} />
             <Link className='fixed bottom-4 hover:cursor-pointer' to="/" >
-                <img  src={require('../pub/circle.png')} height={50} width={50} />
+                <img src={require('../pub/circle.png')} height={70} width={70} />
             </Link>
         </div>
     )

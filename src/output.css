@@ -575,6 +575,10 @@ video {
   height: 100vh;
 }
 
+.h-full{
+  height: 100%;
+}
+
 .w-full{
   width: 100%;
 }
@@ -589,6 +593,10 @@ video {
 
 .w-1\/4{
   width: 25%;
+}
+
+.flex-row{
+  flex-direction: row;
 }
 
 .flex-col{
@@ -609,6 +617,10 @@ video {
 
 .gap-8{
   gap: 2rem;
+}
+
+.gap-2{
+  gap: 0.5rem;
 }
 
 .rounded-md{
@@ -661,6 +673,10 @@ video {
 .py-2{
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+}
+
+.pt-4{
+  padding-top: 1rem;
 }
 
 .text-left{
@@ -716,4 +732,26 @@ code {
 
 .hover\:cursor-pointer:hover{
   cursor: pointer;
+}
+
+@media (min-width: 640px){
+  .sm\:h-screen{
+    height: 100vh;
+  }
+
+  .sm\:w-screen{
+    width: 100vw;
+  }
+
+  .sm\:flex-row{
+    flex-direction: row;
+  }
+
+  .sm\:flex-col{
+    flex-direction: column;
+  }
+
+  .sm\:gap-8{
+    gap: 2rem;
+  }
 }

@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 function Home() {
 
     const [id, setId] = React.useState('')
-    const [name, setName] = React.useState('')
 
     const socket = useSocket();
 
@@ -16,14 +15,7 @@ function Home() {
         <div className="h-screen w-screen justify-center items-center flex flex-col">
 
             <div className="bg-gray-100 p-12 shadow-md rounded-md justify-center items-center flex flex-col gap-6">
-                <div>
-                    <h1 className="font-['Montserrat'] mb-2 w-full text-left text-gray-600">Enter Your Name</h1>
-                    <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="bg-white shadow-md rounded-md px-4 py-2 w-full"
-                    />
-                </div>
+        
                 <div>
                     <h1 className="font-[Montserrat] mb-2 w-full text-left text-gray-600">Enter The Room ID</h1>
                     <input
